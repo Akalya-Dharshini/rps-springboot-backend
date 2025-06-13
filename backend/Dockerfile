@@ -1,18 +1,14 @@
+# Use a Java 17 JDK image
+FROM eclipse-temurin:17-jdk
 
-# Use an official Java image with Maven installed
-FROM maven:3.8.6-openjdk-17-slim
-
-# Set working directory
+# Set the working directory
 WORKDIR /app
 
-# Copy all files
-COPY . .
+# Copy the Maven build output JAR file to the container
+COPY target/demo-0.0.1-SNAPSHOT.jar app.jar
 
-# Build the app
-RUN ./mvnw clean install
-
-# Expose the port the app runs on
+# Expose the port your Spring Boot app runs on
 EXPOSE 8080
 
-# Run the app
-CMD ["java", "-jar", "target/demo-0.0.1-SNAPSHOT.jar"]
+# Run the application
+ENTRYPOINT ["java", "-jar", "app.jar"]
