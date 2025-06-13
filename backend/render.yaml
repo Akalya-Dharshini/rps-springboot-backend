@@ -3,8 +3,5 @@ services:
     name: rps-springboot-backend
     env: java
     plan: free
-    buildCommand: ./mvnw clean install
+    buildCommand: mvn clean install
     startCommand: java -jar target/*.jar
-    envVars:
-      - key: JAVA_HOME
-        value: /opt/render/project/.jdk
