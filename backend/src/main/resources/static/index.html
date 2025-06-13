@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Rock Paper Scissors</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body {
+      background: linear-gradient(135deg, #1f4037, #99f2c8);
+      color: #fff;
+      text-align: center;
+      font-family: 'Segoe UI', sans-serif;
+      padding-top: 40px;
+    }
+
+    .btn-custom {
+      font-size: 1.5rem;
+      margin: 15px;
+      padding: 15px 30px;
+      border-radius: 12px;
+      background-color: #ffd93b;
+      color: #000;
+      transition: transform 0.2s;
+    }
+
+    .btn-custom:hover {
+      background-color: #ffca2c;
+      transform: scale(1.1);
+    }
+
+    .score-board {
+      margin-top: 30px;
+      font-size: 1.5rem;
+      background-color: rgba(0, 0, 0, 0.25);
+      padding: 20px;
+      border-radius: 12px;
+      width: 320px;
+      margin-left: auto;
+      margin-right: auto;
+      backdrop-filter: blur(5px);
+    }
+
+    .score-board span {
+      font-size: 2rem;
+    }
+
+    #popup {
+      display: none;
+      background: #fff;
+      color: #000;
+      margin: 20px auto;
+      padding: 12px 20px;
+      border-radius: 10px;
+      font-size: 1.1rem;
+      font-weight: bold;
+      max-width: 400px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.25);
+      animation: fadeInBounce 3s ease-in-out;
+    }
+
+    @keyframes fadeInBounce {
+      0%   { opacity: 0; transform: scale(0.95); }
+      20%  { opacity: 1; transform: scale(1.02); }
+      100% { opacity: 0; transform: scale(1); }
+    }
+
+    #resetBtn {
+      display: none;
+      margin-top: 30px;
+      padding: 10px 25px;
+      font-size: 1.1rem;
+      border-radius: 10px;
+    }
+
+    .move-icons {
+      font-size: 2rem;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1 class="display-4">Rock Paper Scissors</h1>
+
+  <div class="choices mt-4">
+    <button class="btn btn-custom" onclick="play(0)">🪨 Rock</button>
+    <button class="btn btn-custom" onclick="play(1)">📄 Paper</button>
+    <button class="btn btn-custom" onclick="play(2)">✂️ Scissors</button>
+  </div>
+
+  <!-- Moved popup BELOW buttons -->
+  <div id="popup"></div>
+  <div class="move-icons" id="lastMoves"></div>
+
+  <div class="score-board mt-4">
+    <p>👤 You: <span id="userScore">0</span></p>
+    <p>🖥️ Computer: <span id="compScore">0</span></p>
+    <p>🎯 Rounds Played: <span id="rounds">0/10</span></p>
+  </div>
+
+  <button id="resetBtn" class="btn btn-light" onclick="resetGame()">🔄 Play Again</button>
+
+  <!-- Audio -->
+  <audio id="winSound" src="https://www.myinstants.com/media/sounds/success.mp3"></audio>
+  <audio id="loseSound" src="https://www.myinstants.com/media/sounds/wrong-answer-sound-effect.mp3"></audio>
+  <audio id="tieSound" src="https://www.myinstants.com/media/sounds/pop-up-off.mp3"></audio>
+
+  <script>
+    let userScore = 0;
+    let compScore = 0;
+    let rounds = 0;
+    const maxRounds = 10;
+
+    const winSound = document.getElementById('winSound');
+    const loseSound = document.getElementById('loseSound');
+    const tieSound = document.getElementById('tieSound');
+
+    const emojiMap = ["🪨", "📄", "✂️"];
+
+    function showPopup(message, isFinal = false) {
+      const popup = document.getElementById('popup');
+      popup.innerText = message;
+      popup.style.display = 'block';
+      popup.style.backgroundColor = isFinal ? '#ffe066' : '#fff';
+      popup.style.color = '#000';
+      popup.style.animation = isFinal ? 'fadeInBounce 5s ease-in-out' : 'fadeInBounce 3s ease-in-out';
+    }
+
+    function disableButtons() {
+      document.querySelectorAll('.btn-custom').forEach(btn => {
+        btn.disabled = true;
+        btn.style.opacity = 0.5;
+      });
+    }
+
+    function resetGame() {
+      userScore = 0;
+      compScore = 0;
+      rounds = 0;
+      document.getElementById('userScore').innerText = '0';
+      document.getElementById('compScore').innerText = '0';
+      document.getElementById('rounds').innerText = '0/10';
+      document.getElementById('resetBtn').style.display = 'none';
+      document.getElementById('popup').style.display = 'none';
+      document.getElementById('lastMoves').innerText = '';
+
+      document.querySelectorAll('.btn-custom').forEach(btn => {
+        btn.disabled = false;
+        btn.style.opacity = 1;
+      });
+    }
+
+    function play(userChoice) {
+      if (rounds >= maxRounds) return;
+
+      fetch(`http://localhost:8080/api/play?userChoice=${userChoice}`)
+        .then(res => {
+          if (!res.ok) throw new Error("Server error");
+          return res.json();
+        })
+        .then(data => {
+          if (data.result === "WIN") {
+            userScore++;
+            winSound.play();
+          } else if (data.result === "LOSE") {
+            compScore++;
+            loseSound.play();
+          } else {
+            tieSound.play();
+          }
+
+          rounds++;
+          document.getElementById('userScore').innerText = userScore;
+          document.getElementById('compScore').innerText = compScore;
+          document.getElementById('rounds').innerText = `${rounds}/10`;
+
+          showPopup(data.message);
+          document.getElementById('lastMoves').innerText =
+            `You: ${emojiMapToEmoji(data.player)} | Computer: ${emojiMapToEmoji(data.computer)}`;
+
+          if (rounds === maxRounds) {
+            disableButtons();
+            let finalMessage;
+            if (userScore > compScore) {
+              finalMessage = `🎉 You won the game! Final Score: ${userScore} - ${compScore}`;
+            } else if (userScore < compScore) {
+              finalMessage = `😞 You lost the game! Final Score: ${userScore} - ${compScore}`;
+            } else {
+              finalMessage = `🤝 It's a tie! Final Score: ${userScore} - ${compScore}`;
+            }
+
+            setTimeout(() => {
+              showPopup(finalMessage, true);
+              document.getElementById('resetBtn').style.display = 'inline-block';
+            }, 1500);
+          }
+        })
+        .catch(() => {
+          showPopup("⚠️ Server error! Is the backend running?");
+        });
+    }
+
+    function emojiMapToEmoji(choice) {
+      const map = { "rock": "🪨", "paper": "📄", "scissors": "✂️" };
+      return map[choice] || '';
+    }
+  </script>
+
+</body>
+</html>
