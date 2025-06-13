@@ -1,14 +1,12 @@
-# Use a Java 17 JDK image
-FROM eclipse-temurin:17-jdk
-
-# Set the working directory
+# Use a Java 17 image with Maven
+FROM maven:3.9.6-eclipse-temurin-17 AS build
 WORKDIR /app
+COPY . .
+RUN mvn clean package -DskipTests
 
-# Copy the Maven build output JAR file to the container
-COPY target/demo-0.0.1-SNAPSHOT.jar app.jar
-
-# Expose the port your Spring Boot app runs on
+# Use a lightweight Java image for running the app
+FROM eclipse-temurin:17-jdk
+WORKDIR /app
+COPY --from=build /app/target/*.jar app.jar
 EXPOSE 8080
-
-# Run the application
 ENTRYPOINT ["java", "-jar", "app.jar"]
